@@ -1,4 +1,11 @@
 # Решение
+print('w x y z')
+for w in range(2):
+    for x in range(2):
+        for y in range(2):
+            for z in range(2):
+               if not((not(x) <= y) or (not(z) <= w)) and ((not(z) == y) <= (not(w) == x)):
+                    print(w, x, y, z)
 
 
 
@@ -7,7 +14,6 @@
 
 
 answer = ...
-
 #
 
 from tests.conftest import result_register
