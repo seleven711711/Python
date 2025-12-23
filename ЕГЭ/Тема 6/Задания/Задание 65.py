@@ -12,4 +12,4 @@ answer = ...
 
 from tests.conftest import result_register
 if answer is not Ellipsis:
-    print(result_register(2, 21, answer, '1ed5bb3720986c091b8dc2704366e53d'))
+    print(result_register(6, 65, answer, '5f93f983524def3dca464469d2cf9f3e'))
