@@ -1,6 +1,6 @@
 # Решение
 from turtle import*
-k=20
+k=26
 tracer(0)
 for i in range(4):
     fd(14*k)
@@ -21,7 +21,7 @@ exitonclick()
 
 
 
-answer =64
+answer =61
 
 #
 
