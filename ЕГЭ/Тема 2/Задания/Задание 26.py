@@ -1,9 +1,6 @@
 # Решение
-
-
-
-
-
+print('x y z w')
+for x in ra
 
 
 answer = ...
