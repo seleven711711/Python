@@ -179,66 +179,118 @@ def show_detailed_progress_table():
     sorted_types = sorted(all_types)  # Типы заданий по порядку
 
     # Создаем фигуру и оси
-    fig, ax = plt.subplots(figsize=(15, max(5, len(sorted_dates) * 0.4)))
-
-    # Создаем цветовую карту: красный для неверных, зеленый для верных, серый для отсутствующих
-    cmap = ListedColormap(['#ffcccc', '#ccffcc'])  # Светло-красный, светло-зеленый
-
-    # Создаем сетку для таблицы
-    table_data = np.zeros((len(sorted_dates), len(sorted_types)))
-    table_data.fill(np.nan)  # Заполняем NaN для отсутствующих данных
-
-    # Словарь для хранения текста ячеек
-    cell_texts = {}
-
-    # Заполняем данные для таблицы
+    # Мы не можем заранее знать высоту, поэтому сначала рассчитаем необходимые высоты строк
+    
+    # 1. Рассчитываем максимальное количество заданий в ячейке для каждой даты (строки)
+    max_tasks_per_date = []
+    for date in sorted_dates:
+        max_t = 0
+        for task_type in sorted_types:
+            tasks = date_type_task_result[date].get(task_type, {})
+            if len(tasks) > max_t:
+                max_t = len(tasks)
+        max_tasks_per_date.append(max(1, max_t)) # Минимум 1 слот высоты
+        
+    # Параметры отрисовки
+    row_padding = 0.1  # Отступ между строками
+    task_height = 0.34  # Высота одного блока задания
+    task_gap = 0.06    # Зазор между блоками заданий
+    
+    # Рассчитываем координаты Y для каждой строки
+    # y=0 будет вверху. Идем вниз.
+    row_y_starts = []
+    current_y = 0
+    for count in max_tasks_per_date:
+        row_height = count * task_height + row_padding
+        row_y_starts.append((current_y, row_height))
+        current_y -= row_height
+        
+    total_plot_height = abs(current_y)
+    
+    # Создаем фигуру с адаптивной высотой
+    fig, ax = plt.subplots(figsize=(15, max(4, total_plot_height * 0.5)))
+    
+    # Настраиваем пределы осей
+    ax.set_xlim(-0.5, len(sorted_types) - 0.5)
+    ax.set_ylim(current_y, 0)
+    
+    # Рисуем сетку и данные
     for i, date in enumerate(sorted_dates):
+        y_start, h = row_y_starts[i]
+        y_center = y_start - h / 2
+        
+        # Горизонтальная линия разделителя (нижняя граница строки)
+        ax.axhline(y_start - h, color='lightgray', linewidth=1)
+        
+        # Подпись даты слева
+        ax.text(-0.6, y_center, date.strftime('%d.%m.%Y'), 
+                ha='right', va='center', fontsize=9, fontweight='bold')
+        
+        # Рисуем данные по столбцам
         for j, task_type in enumerate(sorted_types):
             if task_type in date_type_task_result[date]:
-                # Собираем все задания данного типа на эту дату
                 tasks = date_type_task_result[date][task_type]
-                if tasks:
-                    # Вычисляем средний результат для отображения цвета ячейки
-                    avg_result = sum(tasks.values()) / len(tasks)
-                    table_data[i, j] = avg_result
+                sorted_tasks = sorted(tasks.items())
+                
+                num_tasks = len(sorted_tasks)
+                if num_tasks > 0:
+                    # Рисуем блоки заданий
+                    # Блоки занимают всю доступную ширину ячейки (1.0 минус отступы)
+                    cell_width = 1.0
+                    block_width = cell_width - 0.1 # Небольшой отступ по бокам
+                    
+                    # Начальный Y для первого блока в этой ячейке
+                    # Отступ сверху внутри ячейки
+                    cell_top = y_start - row_padding / 2
+                    
+                    for k, (task_num, res) in enumerate(sorted_tasks):
+                        color = '#ccffcc' if res == 1 else '#ffcccc'
+                        
+                        # Границы слота
+                        slot_bottom = cell_top - (k + 1) * task_height
+                        
+                        # Вычисляем высоту блока с учетом зазора
+                        block_h = task_height - task_gap
+                        # Центрируем блок в слоте (или сдвигаем, чтобы зазор был между блоками)
+                        # Зазор разделим пополам сверху и снизу
+                        block_y = slot_bottom + task_gap / 2
+                        
+                        # Рисуем прямоугольник
+                        rect = mpatches.Rectangle(
+                            (j - block_width/2, block_y), 
+                            block_width, block_h,
+                            facecolor=color, edgecolor='gray', linewidth=0.5
+                        )
+                        ax.add_patch(rect)
+                        
+                        # Текст (по центру блока)
+                        symbol = "+" if res == 1 else "−"
+                        txt = f"{symbol}{task_num}"
+                        
+                        # Текст выравниваем по центру вычисленного блока
+                        text_x = j
+                        text_y = block_y + block_h / 2
+                        
+                        ax.text(text_x, text_y, txt, 
+                                ha='center', va='center', fontsize=8)
 
-                    # Формируем текст ячейки: номера заданий с индикацией правильности
-                    task_texts = []
-                    for task_num, res in sorted(tasks.items()):
-                        # Добавляем номер задания с символом + или - в зависимости от результата
-                        symbol = "+" if res == 1 else "-"
-                        task_texts.append(f"{symbol}{task_num}")
+    # Вертикальные линии сетки
+    for j in range(len(sorted_types) + 1):
+        ax.axvline(j - 0.5, color='lightgray', linewidth=1)
 
-                    cell_texts[(i, j)] = "\n".join(task_texts)
-
-    # Создаем таблицу
-    im = ax.imshow(table_data, cmap=cmap, aspect='auto', interpolation='none', alpha=0.7)
-
-    # Добавляем текст в ячейки
-    for i in range(len(sorted_dates)):
-        for j in range(len(sorted_types)):
-            if (i, j) in cell_texts:
-                ax.text(j, i, cell_texts[(i, j)], ha='center', va='center', fontsize=8)
-
-    # Настраиваем оси
+    # Настраиваем оси X
     ax.set_xticks(np.arange(len(sorted_types)))
-    ax.set_yticks(np.arange(len(sorted_dates)))
     ax.set_xticklabels([f"{t}" for t in sorted_types])
-    ax.set_yticklabels([date.strftime('%Y-%m-%d') for date in sorted_dates])
     ax.xaxis.set_tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
-
-    # Добавляем сетку для лучшей читаемости
-    ax.set_xticks(np.arange(-.5, len(sorted_types), 1), minor=True)
-    ax.set_yticks(np.arange(-.5, len(sorted_dates), 1), minor=True)
-    ax.grid(which="minor", color="w", linestyle='-', linewidth=2)
-
+    
+    # Убираем стандартные оси Y, так как мы их нарисовали вручную
+    ax.set_yticks([])
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    
     # Добавляем заголовок и легенду
-    ax.set_title("Детальный прогресс по заданиям")
-
-    # Создаем легенду
-    red_patch = mpatches.Patch(color='#ffcccc', label='Неверно')
-    green_patch = mpatches.Patch(color='#ccffcc', label='Верно')
-    ax.legend(handles=[red_patch, green_patch], loc='upper right')
+    ax.set_title("Детальный прогресс по заданиям", pad=20)
 
     # Настраиваем размер фигуры и отступы
     plt.tight_layout()
@@ -348,6 +400,13 @@ def show_common_progress():
     ax.set_title('Общий прогресс')
     ax.set_xticks(x_types)
     ax.set_ylim(0, 100)
+
+    # Вычисляем среднее арифметическое по всей диаграмме
+    if percentages:
+        mean_percentage = sum(percentages) / len(percentages)
+        ax.text(0.95, 0.95, f'Среднее: {mean_percentage:.1f}',
+                transform=ax.transAxes, ha='right', va='top', fontsize=12,
+                bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
 
     return fig
 
