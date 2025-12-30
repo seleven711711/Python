@@ -7,6 +7,7 @@
 Ответ: 40
 """
 
+# I способ
 p = range(12, 62)
 q = range(52, 92)
 min_len = 100
@@ -16,3 +17,20 @@ for begin in range(100):
         if all(not (not(x in a) and (x in p)) or (x in q) for x in range(100)):
             min_len = min(min_len, end - begin)
 print(min_len)
+
+# II способ
+p = range(12, 62)
+q = range(52, 92)
+min_len = 100
+for begin in range(100):
+    for end in range(100):
+        a = range(begin, end)
+        for x in range(100):
+            if not(not(not(x in a) and (x in p)) or (x in q)):
+                break
+        else:
+            min_len = min(min_len, end - begin)
+print(min_len)
+
+# III способ
+# Графический
