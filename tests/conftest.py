@@ -486,7 +486,7 @@ def result_register(task_type, number, result, right_result):
     # Добавляем график прогресса в Git и создаем коммит
     git_add_file(fig_path)
     git_add_file(detail_fig_path)
-    success_commit, message_commit = git_commit(f"Обновлен статус задания {number} темы {task_type}. Задание решено {("Верно" if res else "Неверно")}")
+    success_commit, message_commit = git_commit(f"Обновлен статус задания {number} темы {task_type}. Задание решено {('Верно' if res else 'Неверно')}")
     if not success_commit:
         print(f"Предупреждение при создании коммита: {message_commit}")
     return "Верно" if res else "Неверно"
