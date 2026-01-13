@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Поиск и замена в Microsoft Word: Подстановочные знаки и специальные символы</title>
-    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
 <div class="container">
@@ -49,7 +49,7 @@
 
             <h3>📸 Интерфейс диалога "Найти и заменить"</h3>
 
-            <img src="../assets/find_and_replace.png" alt="Интерфейс диалога 'Найти и заменить' в Microsoft Word" class="word-interface-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <img src="../assets/images/find_and_replace.png" alt="Интерфейс диалога 'Найти и заменить' в Microsoft Word" class="word-interface-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
 
             <div class="warning">
                 <strong>⚠️ Важно:</strong> Обратите внимание на флажок "Подстановочные знаки" - он определяет режим работы поиска!
@@ -120,9 +120,39 @@
                         <td>Найти все разрывы страниц</td>
                     </tr>
                     <tr>
+                        <td><span class="code">^b</span></td>
+                        <td>Разрыв раздела</td>
+                        <td>Найти границы разделов</td>
+                    </tr>
+                    <tr>
                         <td><span class="code">^s</span></td>
                         <td>Неразрывный пробел</td>
                         <td>Найти неразрывные пробелы</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^w</span></td>
+                        <td>Пробельные символы</td>
+                        <td>Найти любые пробелы или табуляции</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^-</span></td>
+                        <td>Мягкий перенос</td>
+                        <td>Найти скрытые переносы (Ctrl+-)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^~</span></td>
+                        <td>Неразрывный дефис</td>
+                        <td>Найти неразрывные дефисы</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^+</span></td>
+                        <td>Длинное тире</td>
+                        <td>Найти длинные тире (—)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^=</span></td>
+                        <td>Короткое тире</td>
+                        <td>Найти короткие тире (–)</td>
                     </tr>
                     <tr>
                         <td><span class="code">^?</span></td>
@@ -132,17 +162,37 @@
                     <tr>
                         <td><span class="code">^#</span></td>
                         <td>Любая цифра</td>
-                        <td><span class="code">^#^#.^#^#.^#^#^#^#</span> найдет даты</td>
+                        <td><span class="code">^#^#</span> найдет двузначные числа</td>
                     </tr>
                     <tr>
                         <td><span class="code">^$</span></td>
                         <td>Любая буква</td>
-                        <td><span class="code">^$^$^$</span> найдет трехбуквенные слова</td>
+                        <td><span class="code">^$^$^$</span> найдет слова из 3 букв</td>
                     </tr>
                     <tr>
-                        <td><span class="code">^&</span></td>
-                        <td>Содержимое поля "Найти"</td>
-                        <td>Дублировать найденный текст</td>
+                        <td><span class="code">^g</span></td>
+                        <td>Графический объект</td>
+                        <td>Найти рисунки и диаграммы</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^f</span></td>
+                        <td>Знак сноски</td>
+                        <td>Найти обычные сноски</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^e</span></td>
+                        <td>Знак концевой сноски</td>
+                        <td>Найти концевые сноски</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^d</span></td>
+                        <td>Поле</td>
+                        <td>Найти поля Word (даты, формулы)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code">^^</span></td>
+                        <td>Знак крышки</td>
+                        <td>Найти символ ^ (карет)</td>
                     </tr>
                     </tbody>
                 </table>
@@ -196,12 +246,6 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td><span class="code">.</span></td>
-                        <td>Любой символ (кроме абзаца)</td>
-                        <td><span class="code">к.т</span></td>
-                        <td>кот, кит, кут, к5т</td>
-                    </tr>
-                    <tr>
                         <td><span class="code">*</span></td>
                         <td>Ноль или более предыдущих символов</td>
                         <td><span class="code">ко*т</span></td>
@@ -218,18 +262,6 @@
                         <td>Один или более предыдущих символов</td>
                         <td><span class="code">о@</span></td>
                         <td>о, оо, ооо, оооо</td>
-                    </tr>
-                    <tr>
-                        <td><span class="code">^</span></td>
-                        <td>Начало абзаца</td>
-                        <td><span class="code">^Глава</span></td>
-                        <td>"Глава" в начале абзаца</td>
-                    </tr>
-                    <tr>
-                        <td><span class="code">$</span></td>
-                        <td>Конец абзаца</td>
-                        <td><span class="code">точка.$</span></td>
-                        <td>строки, заканчивающиеся на "точка."</td>
                     </tr>
                     <tr>
                         <td><span class="code">[]</span></td>
@@ -264,7 +296,7 @@
                     <tr>
                         <td><span class="code">{,}</span></td>
                         <td>Диапазон повторений</td>
-                        <td><span class="code">о{2,4}</span></td>
+                        <td><span class="code">о{2;4}</span></td>
                         <td>оо, ооо, оооо</td>
                     </tr>
                     <tr>
@@ -294,7 +326,7 @@
             <div class="task-card">
                 <h4>1. Поиск email-адресов:</h4>
                 <div class="solution">
-                    <strong>Найти:</strong> <span class="code">[A-Za-z0-9._-]@\.[A-Za-z0-9.-]@\.[A-Za-z]{2,4}</span><br>
+                    <strong>Найти:</strong> <span class="code">[A-Za-z0-9._-]@\.[A-Za-z0-9.-]@\.[A-Za-z]{2;4}</span><br>
                     <strong>Найдет:</strong> user@example.com, test.email@domain.ru
                 </div>
             </div>
@@ -302,7 +334,7 @@
             <div class="task-card">
                 <h4>2. Поиск дат в формате ДД.ММ.ГГГГ:</h4>
                 <div class="solution">
-                    <strong>Найти:</strong> <span class="code">[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{4}</span><br>
+                    <strong>Найти:</strong> <span class="code">[0-9]{1;2}\.[0-9]{1;2}\.[0-9]{4}</span><br>
                     <strong>Найдет:</strong> 01.01.2024, 5.12.2023, 31.12.2024
                 </div>
             </div>
@@ -313,81 +345,6 @@
                     <strong>Найти:</strong> <span class="code">"([!"]*)\"</span><br>
                     <strong>Заменить:</strong> <span class="code">«\1»</span><br>
                     <strong>Результат:</strong> "текст" → «текст»
-                </div>
-            </div>
-        </section>
-
-        <section id="examples" class="section">
-            <h2><span class="emoji">💡</span>Практические примеры</h2>
-
-            <div class="interactive-example">
-                <h3>🧪 Интерактивный пример: Форматирование списка</h3>
-
-                <div class="input-group">
-                    <label for="input-text">Исходный текст:</label>
-                    <input type="text" id="input-text" value="1.Первый пункт" placeholder="Введите текст для обработки">
-                </div>
-
-                <div class="input-group">
-                    <label for="find-pattern">Найти (шаблон):</label>
-                    <input type="text" id="find-pattern" value="([0-9]@)\.([А-Я])" placeholder="Введите шаблон поиска">
-                </div>
-
-                <div class="input-group">
-                    <label for="replace-pattern">Заменить на:</label>
-                    <input type="text" id="replace-pattern" value="\1. \2" placeholder="Введите шаблон замены">
-                </div>
-
-                <button class="btn" onclick="processText()">🔄 Обработать</button>
-
-                <div class="result-box" id="result">
-                    Результат появится здесь...
-                </div>
-            </div>
-
-            <div class="task-card">
-                <h4>🎯 Задача 1: Форматирование списка</h4>
-                <p><strong>Исходный текст:</strong></p>
-                <div class="code">
-                    1.Первый пункт<br>
-                    2.Второй пункт<br>
-                    3.Третий пункт
-                </div>
-                <p><strong>Цель:</strong> Добавить пробел после номера</p>
-                <div class="solution">
-                    <strong>Найти:</strong> <span class="code">([0-9]@)\.([А-Я])</span><br>
-                    <strong>Заменить:</strong> <span class="code">\1. \2</span><br>
-                    <strong>Результат:</strong><br>
-                    <div class="code">
-                        1. Первый пункт<br>
-                        2. Второй пункт<br>
-                        3. Третий пункт
-                    </div>
-                </div>
-            </div>
-
-            <div class="task-card">
-                <h4>🎯 Задача 2: Очистка лишних пробелов</h4>
-                <p><strong>Исходный текст:</strong> <span class="code">Текст    с     лишними        пробелами</span></p>
-                <div class="solution">
-                    <strong>Обычный поиск:</strong><br>
-                    Найти: <span class="code">  </span> (два пробела)<br>
-                    Заменить: <span class="code"> </span> (один пробел)<br>
-                    Повторить несколько раз<br><br>
-
-                    <strong>Подстановочные знаки:</strong><br>
-                    Найти: <span class="code">[ ]{2,}</span><br>
-                    Заменить: <span class="code"> </span>
-                </div>
-            </div>
-
-            <div class="task-card">
-                <h4>🎯 Задача 3: Преобразование формата даты</h4>
-                <p><strong>Исходный текст:</strong> 01.01.2024</p>
-                <p><strong>Цель:</strong> 01/01/2024</p>
-                <div class="solution">
-                    <strong>Найти:</strong> <span class="code">([0-9]{1,2})\.([0-9]{1,2})\.([0-9]{4})</span><br>
-                    <strong>Заменить:</strong> <span class="code">\1/\2/\3</span>
                 </div>
             </div>
         </section>
@@ -433,7 +390,7 @@
                     <tr>
                         <td>Повторения</td>
                         <td>Не поддерживается</td>
-                        <td><span class="code">*</span>, <span class="code">?</span>, <span class="code">@</span>, <span class="code">{n,m}</span></td>
+                        <td><span class="code">*</span>, <span class="code">?</span>, <span class="code">@</span>, <span class="code">{n;m}</span></td>
                     </tr>
                     <tr>
                         <td>Группировка</td>
@@ -536,9 +493,6 @@
             <li>Всегда тестируйте перед массовой заменой</li>
             <li>Делайте резервные копии важных документов</li>
         </ul>
-        <br><br>
-        <p><em>Документ создан: <span id="current-date"></span></em></p>
-        <p><em>Версия: 1.0</em></p>
     </footer>
 </div>
 
@@ -579,32 +533,6 @@
             }
         });
     });
-
-    // Интерактивный пример обработки текста
-    function processText() {
-        const inputText = document.getElementById('input-text').value;
-        const findPattern = document.getElementById('find-pattern').value;
-        const replacePattern = document.getElementById('replace-pattern').value;
-        const resultDiv = document.getElementById('result');
-
-        try {
-            // Простая демонстрация (в реальности Word использует свой движок)
-            let result = inputText;
-
-            // Базовая обработка для демонстрации
-            if (findPattern === '([0-9]@)\\.([А-Я])' && replacePattern === '\\1. \\2') {
-                result = inputText.replace(/(\d+)\.([А-Я])/g, '$1. $2');
-            }
-
-            resultDiv.innerHTML = `<strong>Результат:</strong><br><span class="code">${result}</span>`;
-            resultDiv.style.background = '#d4edda';
-            resultDiv.style.border = '1px solid #c3e6cb';
-        } catch (error) {
-            resultDiv.innerHTML = `<strong>Ошибка:</strong> ${error.message}`;
-            resultDiv.style.background = '#f8d7da';
-            resultDiv.style.border = '1px solid #f5c6cb';
-        }
-    }
 
     // Подсветка активного раздела в навигации
     window.addEventListener('scroll', function() {
