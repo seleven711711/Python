@@ -1,4 +1,4 @@
-answer = 4
+answer = 2
 
 
 from tests.conftest import result_register
