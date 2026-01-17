@@ -1,9 +1,11 @@
 import hashlib
 import os
 import time
+import sys
 import sqlite3
 import subprocess
 import threading
+import json
 from collections import defaultdict
 from datetime import datetime
 
@@ -22,107 +24,132 @@ git_lock = threading.Lock()
 
 def git_add_file(file_path):
     """Добавляет файл в отслеживаемые Git."""
+    # Повторяем попытки, если git заблокирован
+    for _ in range(5):
+        with git_lock:
+            try:
+                if not os.path.exists(file_path):
+                    return False, f"Файл не найден перед git add: {file_path}"
 
-    with git_lock:
-        try:
-            if not os.path.exists(file_path):
-                return False, f"Файл не найден перед git add: {file_path}"
+                # Проверяем, находится ли файл в Git-репозитории
+                git_dir = os.path.join(repo_root(), '.git')
+                if not os.path.isdir(git_dir):
+                    return False, "Директория .git не найдена, возможно это не Git-репозиторий"
 
-            # Проверяем, находится ли файл в Git-репозитории
-            git_dir = os.path.join(repo_root(), '.git')
-            if not os.path.isdir(git_dir):
-                return False, "Директория .git не найдена, возможно это не Git-репозиторий"
+                # Используем относительный путь для git и заменяем слеши на прямые (для Windows)
+                rel_path = os.path.relpath(file_path, repo_root())
+                rel_path = rel_path.replace(os.sep, '/')
 
-            # Используем относительный путь для git и заменяем слеши на прямые (для Windows)
-            rel_path = os.path.relpath(file_path, repo_root())
-            rel_path = rel_path.replace(os.sep, '/')
+                # Выполняем команду git add для указанного файла
+                flags = 0x08000000 if os.name == 'nt' else 0
+                result = subprocess.run(
+                    ['git', 'add', rel_path],
+                    cwd=repo_root(),  # Устанавливаем рабочую директорию в корень репозитория
+                    check=False,  # Не вызываем исключение при ошибке
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding='utf-8', 
+                    errors='replace',
+                    creationflags=flags
+                )
 
-            # Выполняем команду git add для указанного файла
-            result = subprocess.run(
-                ['git', 'add', rel_path],
-                cwd=repo_root(),  # Устанавливаем рабочую директорию в корень репозитория
-                check=False,  # Не вызываем исключение при ошибке
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding='utf-8', 
-                errors='replace'
-            )
-
-            if result.returncode == 0:
-                return True, "Файл успешно добавлен в отслеживаемые"
-            else:
-                return False, f"Ошибка при добавлении файла: {result.stderr}"
-        except Exception as e:
-            return False, f"Исключение при работе с Git: {str(e)}"
+                if result.returncode == 0:
+                    return True, "Файл успешно добавлен в отслеживаемые"
+                else:
+                    if "index.lock" in result.stderr:
+                        time.sleep(1)
+                        continue
+                    return False, f"Ошибка при добавлении файла: {result.stderr}"
+            except Exception as e:
+                return False, f"Исключение при работе с Git: {str(e)}"
+    return False, "Git заблокирован слишком долго"
 
 
 def git_commit(message="Автоматическое обновление статуса заданий"):
     """Создает коммит с указанным сообщением."""
-    with git_lock:
-        try:
-            # Проверяем, находится ли файл в Git-репозитории
-            git_dir = os.path.join(repo_root(), '.git')
-            if not os.path.isdir(git_dir):
-                return False, "Директория .git не найдена, возможно это не Git-репозиторий"
-    
-            # Выполняем команду git commit
-            result = subprocess.run(
-                ['git', 'commit', '-m', message],
-                cwd=repo_root(),  # Устанавливаем рабочую директорию в корень репозитория
-                check=False,  # Не вызываем исключение при ошибке
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-    
-            if result.returncode == 0:
-                return True, "Коммит успешно создан"
-            else:
-                # Если нет изменений для коммита, это не ошибка
-                if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
-                    return True, "Нет изменений для коммита"
-                return False, f"Ошибка при создании коммита: {result.stderr}"
-        except Exception as e:
-            return False, f"Исключение при работе с Git: {str(e)}"
-
-
-def rename_when_closed(src, dst, callback=None):
-    """
-    Пытается переименовать файл в отдельном потоке. 
-    Если он занят, ждет 5 секунд и пробует снова, пока не освободится.
-    """
-    def _worker():
-        while True:
+    for _ in range(5):
+        with git_lock:
             try:
-                if os.path.exists(dst):
-                    # Если целевой файл существует, удаляем его, чтобы rename сработал (как replace)
-                    try:
-                        os.remove(dst)
-                    except OSError:
-                        pass # Если не удалось удалить, возможно он тоже занят
-                
-                os.rename(src, dst)
-                
-                # Дополнительная проверка, что файл действительно переименовался
-                if not os.path.exists(dst):
-                     # Если файл не найден по новому пути, возможно произошел сбой, повторяем цикл
-                     time.sleep(1)
-                     continue
+                # Проверяем, находится ли файл в Git-репозитории
+                git_dir = os.path.join(repo_root(), '.git')
+                if not os.path.isdir(git_dir):
+                    return False, "Директория .git не найдена, возможно это не Git-репозиторий"
+        
+                # Выполняем команду git commit
+                flags = 0x08000000 if os.name == 'nt' else 0
+                result = subprocess.run(
+                    ['git', 'commit', '-m', message],
+                    cwd=repo_root(),  # Устанавливаем рабочую директорию в корень репозитория
+                    check=False,  # Не вызываем исключение при ошибке
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=flags
+                )
+        
+                if result.returncode == 0:
+                    return True, "Коммит успешно создан"
+                else:
+                    # Если нет изменений для коммита, это не ошибка
+                    if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
+                        return True, "Нет изменений для коммита"
+                    if "index.lock" in result.stderr:
+                        time.sleep(1)
+                        continue
+                    return False, f"Ошибка при создании коммита: {result.stderr}"
+            except Exception as e:
+                return False, f"Исключение при работе с Git: {str(e)}"
+    return False, "Git заблокирован слишком долго"
 
-                if callback:
-                    try:
-                        callback()
-                    except Exception as e:
-                        print(f"Ошибка в callback после переименования: {e}")
-                return
-                
-            except OSError: 
-                # Файл занят. Ждем 5 секунд перед следующей попыткой
-                time.sleep(3)
 
-    thread = threading.Thread(target=_worker, daemon=False)
-    thread.start()
+def rename_when_closed(task_dir, file_list, commit_msg=None):
+    """
+    Добавляет задачу на переименование группы файлов в очередь (SQLite) и запускает фоновый процесс-обработчик.
+    file_list: список словарей [{'base': '...', 'target': '...'}, ...]
+    """
+    try:
+        # Добавляем в очередь
+        db_path = os.path.join(os.path.dirname(__file__), 'rename_queue.db')
+        
+        # Генерируем уникальный ключ для задачи (чтобы обновлять статус одной и той же задачи)
+        # Ключ = путь_папки + имена_файлов
+        files_key = ",".join(sorted([f['base'] for f in file_list]))
+        unique_key = f"{task_dir}|{files_key}"
+        
+        files_json = json.dumps(file_list)
+        
+        with sqlite3.connect(db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY, 
+                    task_dir TEXT, 
+                    files TEXT, 
+                    commit_msg TEXT,
+                    unique_key TEXT UNIQUE ON CONFLICT REPLACE
+                )
+            ''')
+            conn.execute(
+                "INSERT INTO tasks (task_dir, files, commit_msg, unique_key) VALUES (?, ?, ?, ?)",
+                (task_dir, files_json, commit_msg or "Авто-обновление статуса задания", unique_key)
+            )
+    except Exception as e:
+        print(f"Ошибка при добавлении в очередь переименования: {e}")
+        return
+
+    # Запускаем worker, если он еще не запущен
+    worker_script = os.path.join(os.path.dirname(__file__), 'rename_worker.py')
+    flags = 0x08000000 | 0x00000008 | 0x00000200 if os.name == 'nt' else 0
+
+    try:
+        subprocess.Popen(
+            [sys.executable, worker_script],
+            creationflags=flags,
+            close_fds=True,
+            start_new_session=True if os.name != 'nt' else False
+        )
+    except Exception:
+        pass
 
 
 def db_path():
@@ -495,53 +522,36 @@ def result_register(task_type, number, result, right_result):
         # Список поддерживаемых расширений файлов
         extensions = ['.md', '.png', '.py', '.jpg', '.ods', '.xlsx', '.odt', '.docx', '.doc', '.xls', '.csv', '.txt']
         # Список найденных файлов
-        files = []
+        files_to_rename = []
+        renamed_paths = []
         sign = '+' if is_correct else '-'
-        renamed = []
+        commit_msg = f"Обновлен статус задания № {number} Тема: {task_type} > {('Верно' if res else 'Неверно')}"
 
         for ext in extensions:
             base_name = f"Задание {n}{ext}"
-            # Кандидаты: без префикса и с обоими префиксами
-            candidates = [
-                os.path.join(task_dir, base_name),
-                os.path.join(task_dir, '+' + base_name),
-                os.path.join(task_dir, '-' + base_name),
-            ]
-
-            src = None
-            for cand in candidates:
-                if os.path.exists(cand):
-                    src = cand
+            target_name = sign + base_name
+            
+            # Проверяем наличие любой версии файла (оригинал, +, -)
+            file_exists = False
+            for prefix in ['', '+', '-']:
+                if os.path.exists(os.path.join(task_dir, prefix + base_name)):
+                    file_exists = True
                     break
-            if not src:
+            
+            if not file_exists:
                 continue
 
-            dst = os.path.join(task_dir, sign + base_name)
+            files_to_rename.append({'base': base_name, 'target': target_name})
+            renamed_paths.append(os.path.join(task_dir, target_name))
+
+        if files_to_rename:
             try:
-                def on_rename_success():
-                    # Пытаемся добавить в git ТОЛЬКО если файл реально существует и не занят
-                    # Но поскольку git_add_file уже имеет проверки, просто вызываем его
-                    success, message = git_add_file(dst)
-                    if not success:
-                        pass # print(f"Предупреждение при добавлении файла в Git: {message}")
-                    
-                    # Коммитим изменения СРАЗУ после успешного добавления файла
-                    # Это гарантирует, что изменение статуса задания попадет в коммит
-                    git_commit(f"Обновлен статус задания № {number} Тема: {task_type} > {('Верно' if res else 'Неверно')}")
-
-                if os.path.abspath(src) != os.path.abspath(dst):
-                    # Переименование в фоне
-                    rename_when_closed(src, dst, callback=on_rename_success)
-                else:
-                    # Имя правильное, просто добавляем в git (если не добавлено)
-                    on_rename_success()
-                    
-                renamed.append(dst)
-
+                # Переименование группы файлов в фоновом режиме
+                rename_when_closed(task_dir, files_to_rename, commit_msg=commit_msg)
             except Exception as e:
-                print(f"Ошибка при переименовании файла: {str(e)}")
+                print(f"Ошибка при постановке задачи на переименование: {str(e)}")
 
-        return renamed
+        return renamed_paths
 
     mark_task_files(task_type, number, res == 1)
     fig = show_common_progress()
