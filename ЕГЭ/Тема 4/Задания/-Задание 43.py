@@ -1,4 +1,4 @@
-answer =30
+answer =22
 
 
 from tests.conftest import result_register
