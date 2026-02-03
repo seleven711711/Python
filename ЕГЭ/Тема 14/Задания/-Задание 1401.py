@@ -4,8 +4,8 @@ for x in '0123456789abc':
         p1=f'8{x}78{y}'
         p2=f'79{x}{y}7'
         r=int(p1,13)+int(p2,18)
-    if r%9==0:
-        print(r//9)
+        if r%9==0:
+            print(r//9)
         break
 
 
@@ -13,7 +13,7 @@ for x in '0123456789abc':
 
 
 
-answer =113877
+answer =114692
 
 #
 
