@@ -13,7 +13,7 @@ for x in '0123456789abc':
 
 
 
-answer =114692
+answer =116379
 
 #
 
