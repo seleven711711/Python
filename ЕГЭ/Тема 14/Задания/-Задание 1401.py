@@ -3,7 +3,7 @@ for x in '0123456789abc':
     for y in '0123456789abc':
         p1=f'8{x}78{y}'
         p2=f'79{x}{y}7'
-    r=int(p1,13)+int(p2,18)
+        r=int(p1,13)+int(p2,18)
     if r%9==0:
         print(r//9)
         break
