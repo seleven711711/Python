@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тема 12. Машина Тьюринга</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .tm-diagram {
+            width: 100%;
+            max-width: 1100px;
+            display: block;
+            margin: 20px auto;
+            border-radius: 12px;
+        }
+        .cell-format-demo {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            justify-content: center;
+            margin: 18px 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .cell-part {
+            padding: 14px 22px;
+            font-size: 1.25em;
+            font-weight: bold;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 80px;
+        }
+        .cell-part.new-symbol {
+            background: #d5e8d4;
+            border-color: #82b366;
+            color: #2d6a2d;
+        }
+        .cell-part.direction {
+            background: #dae8fc;
+            border-color: #6c8ebf;
+            color: #00008B;
+        }
+        .cell-part.new-state {
+            background: #ffe6cc;
+            border-color: #d79b00;
+            color: #7a4500;
+        }
+        .cell-sep {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4em;
+            color: #666;
+        }
+        .cell-labels {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-top: 6px;
+        }
+        .cell-label {
+            min-width: 80px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #555;
+            padding: 0 6px;
+        }
+        .tm-table {
+            border-collapse: collapse;
+            margin: 0 auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .tm-table th, .tm-table td {
+            border: 2px solid #9e9e9e;
+            padding: 10px 18px;
+            text-align: center;
+            font-size: 1em;
+        }
+        .tm-table .corner {
+            background: #1e3a5f;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        .tm-table .col-header {
+            background: #dae8fc;
+            color: #00008B;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .tm-table .col-header.active {
+            background: #6c8ebf;
+            color: white;
+            border-color: #00008B;
+            border-width: 3px;
+        }
+        .tm-table .row-header {
+            background: #e8e8e8;
+            color: #333;
+            font-weight: bold;
+        }
+        .tm-table .row-header.active {
+            background: #82b366;
+            color: white;
+            border-color: #2d6a2d;
+            border-width: 3px;
+        }
+        .tm-table .row-header.halt {
+            background: #f8cecc;
+            color: #b85450;
+        }
+        .tm-table td.active-row {
+            background: #d5e8d4;
+        }
+        .tm-table td.active-col {
+            background: #e3f0ff;
+        }
+        .tm-table td.active-cell {
+            background: #f0a30a;
+            color: #1a0000;
+            font-weight: bold;
+            border-color: #BD7000;
+            border-width: 3px;
+        }
+        .tm-table td.halt-cell {
+            background: #f8cecc;
+            color: #b85450;
+        }
+        .tape-demo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 16px 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .tape-cell {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4em;
+            font-weight: bold;
+            background: white;
+        }
+        .tape-cell.blank {
+            background: #f5f5f5;
+            color: #aaa;
+            font-size: 1.1em;
+        }
+        .tape-cell.current {
+            background: #fff2cc;
+            border-color: #d6b656;
+            border-width: 3px;
+            font-size: 1.5em;
+        }
+        .tape-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .tape-head {
+            font-size: 1.3em;
+            color: #d6b656;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+        .step-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .step-table th {
+            background: #1e3a5f;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+        .step-table td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+        }
+        .step-table tr:nth-child(even) td {
+            background: #f9f9f9;
+        }
+        .step-table tr.active-step td {
+            background: #fff2cc;
+            font-weight: bold;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin: 14px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        .legend-color {
+            width: 28px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <h1><span class="emoji">⚙️</span>Тема 12. Машина Тьюринга</h1>
+        <p>Устройство, таблица переходов и алгоритм выполнения</p>
+    </header>
+
+    <nav class="nav">
+        <ul>
+            <li><a href="#intro">📝 Введение</a></li>
+            <li><a href="#components">🔧 Компоненты</a></li>
+            <li><a href="#diagram">🗺️ Схема</a></li>
+            <li><a href="#table">📊 Таблица переходов</a></li>
+            <li><a href="#cell">🔍 Формат ячейки</a></li>
+            <li><a href="#algorithm">▶️ Алгоритм работы</a></li>
+            <li><a href="#example">💡 Пример</a></li>
+            <li><a href="#tips">🎓 Советы ЕГЭ</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+
+        <!-- ==================== ВВЕДЕНИЕ ==================== -->
+        <section id="intro" class="section">
+            <h2><span class="emoji">📝</span>Введение</h2>
+            <p>
+                <strong>Машина Тьюринга (МТ)</strong> — абстрактная вычислительная модель, предложенная
+                Аланом Тьюрингом в 1936 году. Несмотря на кажущуюся простоту, МТ способна выполнять
+                любой алгоритм, который в принципе может быть формализован.
+            </p>
+            <p>
+                В заданиях ЕГЭ по информатике (задание 12) требуется проследить работу МТ по заданной
+                таблице переходов и определить результат — какое слово окажется на ленте после остановки.
+            </p>
+            <div class="example-box">
+                <h4>🎯 Что проверяет задание 12 ЕГЭ:</h4>
+                <ul>
+                    <li>Умение читать таблицу переходов МТ</li>
+                    <li>Умение пошагово прослеживать работу МТ</li>
+                    <li>Понимание понятий «состояние», «символ», «сдвиг головки»</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ==================== КОМПОНЕНТЫ ==================== -->
+        <section id="components" class="section">
+            <h2><span class="emoji">🔧</span>Компоненты машины Тьюринга</h2>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Компонент</th>
+                        <th>Описание</th>
+                        <th>Обозначение</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><strong>Лента (Tape)</strong></td>
+                        <td>Бесконечная в обе стороны последовательность ячеек. В каждой ячейке хранится один символ рабочего алфавита или пустой символ λ</td>
+                        <td><code>λ 1 0 1 0 λ λ ...</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Головка (Head)</strong></td>
+                        <td>Устройство чтения/записи. Всегда стоит над одной ячейкой — «текущей». Может читать символ, записывать новый, затем сдвигаться на одну ячейку</td>
+                        <td>▼ над текущей ячейкой</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Состояние (State)</strong></td>
+                        <td>«Режим работы» управляющего устройства. В каждый момент машина находится в одном состоянии q</td>
+                        <td>q0, q1, q2, ..., qH</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Таблица переходов</strong></td>
+                        <td>Главный элемент МТ. Для каждой пары (состояние, символ) задаёт действие: что записать, куда сдвинуть головку, в какое состояние перейти</td>
+                        <td>Матрица строк × столбцов</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Начальное состояние</strong></td>
+                        <td>Состояние, с которого начинается работа МТ</td>
+                        <td>q1 (или q0)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Состояние стоп</strong></td>
+                        <td>Особое состояние — попав в него, машина останавливается</td>
+                        <td>qH (Halt) или ! (стоп)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>🖊️ Рабочий алфавит</h3>
+            <p>Алфавит МТ — это набор символов, которые могут находиться на ленте. Всегда включает:</p>
+            <ul>
+                <li><strong>λ (лямбда) / □</strong> — пустой символ (ячейка не заполнена)</li>
+                <li>Рабочие символы — например: <code>0</code>, <code>1</code>, <code>a</code>, <code>b</code></li>
+            </ul>
+        </section>
+
+        <!-- ==================== СХЕМА ==================== -->
+        <section id="diagram" class="section">
+            <h2><span class="emoji">🗺️</span>Наглядная схема</h2>
+            <p>На схеме ниже показаны все компоненты МТ и структура таблицы переходов с пояснениями:
+                строки — текущее состояние, столбцы — текущий символ, ячейки — инструкция.</p>
+
+            <img src="../assets/images/Машина_Тьюринга.drawio.svg"
+                 alt="Схема машины Тьюринга: таблица переходов, лента, головка, состояния"
+                 class="tm-diagram">
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#82b366;border-color:#2d6a2d;"></div>
+                    <span>Строка текущего состояния</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#6c8ebf;border-color:#00008B;"></div>
+                    <span>Столбец текущего символа</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#f0a30a;border-color:#BD7000;"></div>
+                    <span>Активная ячейка (текущий переход)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#fff2cc;border-color:#d6b656;"></div>
+                    <span>Текущая ячейка на ленте</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== ТАБЛИЦА ПЕРЕХОДОВ ==================== -->
+        <section id="table" class="section">
+            <h2><span class="emoji">📊</span>Таблица переходов</h2>
+
+            <p>Таблица переходов — главный элемент МТ, полностью задающий её поведение.</p>
+
+            <div class="example-box">
+                <h4>🔑 Структура таблицы:</h4>
+                <ul>
+                    <li><strong>Строки</strong> = текущее состояние машины (q1, q2, ...)</li>
+                    <li><strong>Столбцы</strong> = текущий символ под головкой на ленте (0, 1, λ, ...)</li>
+                    <li><strong>Ячейка на пересечении</strong> = инструкция: что сделать на этом шаге</li>
+                </ul>
+            </div>
+
+            <h3>Пример таблицы переходов</h3>
+            <p>Ниже приведена таблица МТ, прибавляющей 1 к двоичному числу (например, 101 → 110).
+               Текущее состояние — <strong>q1</strong>, текущий символ — <strong>1</strong>
+               (активная ячейка выделена оранжевым):</p>
+
+            <div class="table-container">
+                <table class="tm-table">
+                    <thead>
+                    <tr>
+                        <th class="corner">Состояние ↓<br>Символ →</th>
+                        <th class="col-header">0</th>
+                        <th class="col-header active">1</th>
+                        <th class="col-header">λ</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td class="row-header">q0</td>
+                        <td>0, →, q0</td>
+                        <td class="active-col">1, →, q0</td>
+                        <td>λ, ←, q1</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header active">q1 ◄</td>
+                        <td class="active-row">1, ●, qH</td>
+                        <td class="active-cell">0, ←, q1</td>
+                        <td class="active-row">1, ●, qH</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header halt">qH</td>
+                        <td class="halt-cell">СТОП</td>
+                        <td class="halt-cell">СТОП</td>
+                        <td class="halt-cell">СТОП</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="success">
+                <strong>💡 Как читать таблицу:</strong> Найдите строку с текущим состоянием,
+                затем столбец с символом, который сейчас под головкой. На пересечении — инструкция для этого шага.
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ Важно:</strong> Если в ячейке прочерк (—) или она пуста, это
+                значит данная комбинация не предусмотрена и машина остановится с ошибкой.
+                В задачах ЕГЭ такого обычно не происходит — машина всегда доходит до qH корректно.
+            </div>
+        </section>
+
+        <!-- ==================== ФОРМАТ ЯЧЕЙКИ ==================== -->
+        <section id="cell" class="section">
+            <h2><span class="emoji">🔍</span>Формат ячейки таблицы</h2>
+
+            <p>Каждая ячейка таблицы содержит ровно три элемента, разделённых запятыми:</p>
+
+            <div class="cell-format-demo">
+                <div class="cell-part new-symbol">0</div>
+                <div class="cell-sep">,</div>
+                <div class="cell-part direction">←</div>
+                <div class="cell-sep">,</div>
+                <div class="cell-part new-state">q1</div>
+            </div>
+            <div class="cell-labels">
+                <div class="cell-label" style="min-width:80px;">① Записать</div>
+                <div class="cell-label" style="min-width:12px;"></div>
+                <div class="cell-label" style="min-width:80px;">② Сдвиг</div>
+                <div class="cell-label" style="min-width:12px;"></div>
+                <div class="cell-label" style="min-width:80px;">③ Состояние</div>
+            </div>
+
+            <div class="table-container" style="margin-top:20px;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Позиция</th>
+                        <th>Что означает</th>
+                        <th>Возможные значения</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><strong>① Новый символ</strong></td>
+                        <td>Символ, который будет записан в текущую ячейку (вместо того, что там было)</td>
+                        <td>Любой символ алфавита: <code>0</code>, <code>1</code>, <code>λ</code>, <code>a</code>, <code>b</code>, ...</td>
+                    </tr>
+                    <tr>
+                        <td><strong>② Направление</strong></td>
+                        <td>Куда сдвинуть головку после записи</td>
+                        <td>
+                            <code>→</code> или <code>R</code> — вправо<br>
+                            <code>←</code> или <code>L</code> — влево<br>
+                            <code>●</code> или <code>N</code> — не двигать (стоп)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>③ Новое состояние</strong></td>
+                        <td>В какое состояние перейти после этого шага</td>
+                        <td><code>q0</code>, <code>q1</code>, <code>q2</code>, ... или <code>qH</code> (стоп)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="example-box">
+                <h4>Пример расшифровки записи <code>0, ←, q1</code>:</h4>
+                <ol>
+                    <li>Записать символ <strong>0</strong> в текущую ячейку ленты</li>
+                    <li>Сдвинуть головку на одну ячейку <strong>влево</strong></li>
+                    <li>Перейти в состояние <strong>q1</strong></li>
+                </ol>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ Порядок действий:</strong> Сначала запись, потом сдвиг, потом переход.
+                Нельзя перепутать порядок при трассировке!
+            </div>
+        </section>
+
+        <!-- ==================== АЛГОРИТМ РАБОТЫ ==================== -->
+        <section id="algorithm" class="section">
+            <h2><span class="emoji">▶️</span>Алгоритм работы МТ</h2>
+
+            <div class="example-box">
+                <h4>📋 Пошаговый алгоритм одного шага МТ:</h4>
+                <ol>
+                    <li><strong>Прочитать</strong> символ в текущей ячейке (под головкой)</li>
+                    <li><strong>Найти строку</strong> с текущим состоянием в таблице переходов</li>
+                    <li><strong>Найти столбец</strong> с прочитанным символом</li>
+                    <li><strong>Прочитать ячейку</strong> на пересечении: (символ, направление, состояние)</li>
+                    <li><strong>Записать</strong> новый символ в текущую ячейку</li>
+                    <li><strong>Сдвинуть</strong> головку в указанном направлении</li>
+                    <li><strong>Обновить</strong> текущее состояние</li>
+                    <li><strong>Повторить</strong> с шага 1, если новое состояние ≠ qH (стоп)</li>
+                </ol>
+            </div>
+
+            <div class="success">
+                <strong>✅ Когда МТ останавливается:</strong> Когда машина переходит в состояние
+                <code>qH</code> (или другое указанное конечное состояние). Слово, оставшееся на ленте —
+                результат работы.
+            </div>
+
+            <h3>🧭 Удобный способ трассировки</h3>
+            <p>При решении задач ЕГЭ рекомендуется вести таблицу трассировки:</p>
+
+            <div class="table-container">
+                <table class="step-table">
+                    <thead>
+                    <tr>
+                        <th>Шаг</th>
+                        <th>Состояние</th>
+                        <th>Символ под головкой</th>
+                        <th>Действие (из таблицы)</th>
+                        <th>Лента после шага</th>
+                        <th>Позиция головки</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>0</td>
+                        <td>q1 (старт)</td>
+                        <td>...</td>
+                        <td>—</td>
+                        <td>начальное слово</td>
+                        <td>начальная</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>q?</td>
+                        <td>?</td>
+                        <td>символ, сдвиг, сост.</td>
+                        <td>...</td>
+                        <td>...</td>
+                    </tr>
+                    <tr>
+                        <td>...</td>
+                        <td>...</td>
+                        <td>...</td>
+                        <td>...</td>
+                        <td>...</td>
+                        <td>...</td>
+                    </tr>
+                    <tr>
+                        <td>N</td>
+                        <td>qH (СТОП)</td>
+                        <td>—</td>
+                        <td>ОСТАНОВКА</td>
+                        <td>результат</td>
+                        <td>—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ==================== ПРИМЕР ==================== -->
+        <section id="example" class="section">
+            <h2><span class="emoji">💡</span>Разобранный пример</h2>
+
+            <div class="task-card">
+                <h4>Задача:</h4>
+                <p>
+                    Машина Тьюринга работает с лентой, на которой записано двоичное число <strong>101</strong>.
+                    Головка установлена над <strong>крайним левым</strong> символом.
+                    Начальное состояние — <strong>q0</strong>.
+                </p>
+                <p>Таблица переходов:</p>
+
+                <div class="table-container">
+                    <table class="tm-table">
+                        <thead>
+                        <tr>
+                            <th class="corner">Сост. ↓ / Симв. →</th>
+                            <th class="col-header">0</th>
+                            <th class="col-header">1</th>
+                            <th class="col-header">λ</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td class="row-header">q0</td>
+                            <td>0, →, q0</td>
+                            <td>1, →, q0</td>
+                            <td>λ, ←, q1</td>
+                        </tr>
+                        <tr>
+                            <td class="row-header">q1</td>
+                            <td>1, ●, qH</td>
+                            <td>0, ←, q1</td>
+                            <td>1, ●, qH</td>
+                        </tr>
+                        <tr>
+                            <td class="row-header halt">qH</td>
+                            <td class="halt-cell">СТОП</td>
+                            <td class="halt-cell">СТОП</td>
+                            <td class="halt-cell">СТОП</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p><strong>Вопрос:</strong> Какое слово окажется на ленте после остановки МТ?</p>
+
+                <h4>Решение (трассировка):</h4>
+                <p><em>Начальное состояние ленты (↓ = позиция головки):</em></p>
+
+                <div class="tape-demo">
+                    <div class="tape-cell blank">λ</div>
+                    <div class="tape-wrapper">
+                        <div class="tape-head">▼</div>
+                        <div class="tape-cell current">1</div>
+                    </div>
+                    <div class="tape-cell">0</div>
+                    <div class="tape-cell">1</div>
+                    <div class="tape-cell blank">λ</div>
+                </div>
+
+                <div class="table-container">
+                    <table class="step-table">
+                        <thead>
+                        <tr>
+                            <th>Шаг</th>
+                            <th>Состояние</th>
+                            <th>Символ</th>
+                            <th>Ячейка таблицы</th>
+                            <th>Действие</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>q0</td>
+                            <td>1</td>
+                            <td><code>1, →, q0</code></td>
+                            <td>Записать 1, сдвиг →, → q0. Лента: <strong>1</strong>0<strong>1</strong>, головка над 0</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>q0</td>
+                            <td>0</td>
+                            <td><code>0, →, q0</code></td>
+                            <td>Записать 0, сдвиг →, → q0. Лента: 10<strong>1</strong>, головка над 1</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>q0</td>
+                            <td>1</td>
+                            <td><code>1, →, q0</code></td>
+                            <td>Записать 1, сдвиг →, → q0. Лента: 101<strong>λ</strong>, головка над λ</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>q0</td>
+                            <td>λ</td>
+                            <td><code>λ, ←, q1</code></td>
+                            <td>Записать λ, сдвиг ←, → q1. Головка над последней 1</td>
+                        </tr>
+                        <tr class="active-step">
+                            <td>5</td>
+                            <td>q1</td>
+                            <td>1</td>
+                            <td><code>0, ←, q1</code></td>
+                            <td>Записать <strong>0</strong> (было 1), сдвиг ←, → q1. Лента: 10<strong>0</strong></td>
+                        </tr>
+                        <tr class="active-step">
+                            <td>6</td>
+                            <td>q1</td>
+                            <td>0</td>
+                            <td><code>1, ●, qH</code></td>
+                            <td>Записать <strong>1</strong> (было 0), стоп, → qH. Лента: 1<strong>1</strong>0</td>
+                        </tr>
+                        <tr>
+                            <td>—</td>
+                            <td>qH</td>
+                            <td>—</td>
+                            <td>СТОП</td>
+                            <td><strong>Машина остановилась</strong></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="solution">
+                    <strong>Ответ:</strong> На ленте осталось <code>110</code>.
+                    <br>Машина прибавила 1 к двоичному числу 101 (5₁₀) и получила 110 (6₁₀). ✓
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== СОВЕТЫ ЕГЭ ==================== -->
+        <section id="tips" class="section">
+            <h2><span class="emoji">🎓</span>Советы для ЕГЭ</h2>
+
+            <div class="success">
+                <h4>✅ Как решать задание 12 шаг за шагом:</h4>
+                <ol>
+                    <li><strong>Найдите начальное состояние</strong> — обычно указано в условии (q1 или q0)</li>
+                    <li><strong>Зафиксируйте начальное положение головки</strong> — над каким символом стоит</li>
+                    <li><strong>Ведите трассировку</strong> в столбик: состояние → символ → действие</li>
+                    <li><strong>На каждом шаге:</strong> находите строку (состояние) и столбец (символ) в таблице</li>
+                    <li><strong>Выполняйте действия строго по порядку:</strong> запись → сдвиг → смена состояния</li>
+                    <li><strong>Останавливайтесь при qH</strong> и записывайте ответ с ленты</li>
+                </ol>
+            </div>
+
+            <div class="warning">
+                <h4>❌ Частые ошибки:</h4>
+                <ul>
+                    <li><strong>Спутать строки и столбцы</strong> — строки = состояния, столбцы = символы</li>
+                    <li><strong>Забыть записать символ</strong> перед сдвигом (иногда символ не меняется, но всё равно нужно проверить)</li>
+                    <li><strong>Потерять позицию головки</strong> — отмечайте её на каждом шаге</li>
+                    <li><strong>Не учесть символ λ (пустую ячейку)</strong> — она тоже является полноправным символом алфавита</li>
+                    <li><strong>Остановиться не там</strong> — машина работает только до перехода в qH</li>
+                </ul>
+            </div>
+
+            <div class="example-box">
+                <h4>⚡ Быстрые подсказки:</h4>
+                <ul>
+                    <li>Если в ячейке стоит <code>а, →, q</code> — символ <em>а</em> может совпадать с тем, что уже на ленте (запись "ничего не меняет")</li>
+                    <li>Обозначения направления: <code>Л / L / ←</code> — влево, <code>П / R / →</code> — вправо, <code>Н / N / ●</code> — стоять</li>
+                    <li>Пустой символ может обозначаться как <code>λ</code>, <code>□</code>, <code>_</code> или пробелом — всё одно и то же</li>
+                    <li>Состояние стоп обозначается как <code>qH</code>, <code>q!</code>, <code>STOP</code> или выделяется в задаче особо</li>
+                </ul>
+            </div>
+
+            <h3>🔁 Типичный сценарий задачи ЕГЭ</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Дано</th>
+                        <th>Найти</th>
+                        <th>Алгоритм</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Таблица переходов + начальное слово на ленте + начальная позиция + начальное состояние</td>
+                        <td>Слово на ленте после остановки МТ</td>
+                        <td>Пошаговая трассировка до состояния qH</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<a href="#" class="back-to-top" id="backToTop">↑</a>
+
+<script>
+    window.addEventListener('scroll', function () {
+        const backToTop = document.getElementById('backToTop');
+        if (window.pageYOffset > 300) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+    });
+
+    document.getElementById('backToTop').addEventListener('click', function (e) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    window.addEventListener('scroll', function () {
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('.nav a');
+        let current = '';
+        sections.forEach(section => {
+            if (pageYOffset >= section.offsetTop - 200) {
+                current = section.getAttribute('id');
+            }
+        });
+        navLinks.forEach(link => {
+            link.style.background = '';
+            if (link.getAttribute('href') === '#' + current) {
+                link.style.background = '#3498db';
+            }
+        });
+    });
+</script>
+</body>
+</html>
