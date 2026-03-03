@@ -27,4 +27,3 @@ for n in range(1, 100000000):
     if res[n] == 70:
         print(n)
         break
-
