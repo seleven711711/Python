@@ -14,13 +14,13 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize, LinearSegmentedColormap, ListedColormap
 import matplotlib.patches as mpatches
 
+# Глобальный лок для операций Git, чтобы избежать конфликтов при параллельном доступе
+git_lock = threading.Lock()
 
 def repo_root():
     # Корень репозитория — родительская папка для tests/
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-# Глобальный лок для операций Git, чтобы избежать конфликтов при параллельном доступе
-git_lock = threading.Lock()
 
 def git_add_file(file_path):
     """Добавляет файл в отслеживаемые Git."""
@@ -166,32 +166,56 @@ def create_new_db():
                                                            date_time   DATETIME,
                                                            task_number BIGINT,
                                                            task_type   INTEGER,
-                                                           result      INTEGER
+                                                           result      INTEGER,
+                                                           last_answer TEXT
                        )
                        ''')
 
 
-def add_result(date_time, task_number, task_type, result):
+def add_result(date_time, task_number, task_type, last_answer, result):
     if not os.path.exists(db_path()):
         create_new_db()
     with sqlite3.connect(db_path()) as connection:
         cursor = connection.cursor()
+        
+        # Добавляем колонку last_answer, если её нет (для обратной совместимости)
+        try:
+            cursor.execute('ALTER TABLE test ADD COLUMN last_answer TEXT')
+        except sqlite3.OperationalError:
+            pass
+            
+        # Проверяем, совпадает ли результат с последним ответом в БД
+        cursor.execute('''
+            SELECT last_answer FROM test 
+            WHERE task_number = ? AND task_type = ? 
+            ORDER BY date_time DESC LIMIT 1
+        ''', (task_number, task_type))
+        last_row = cursor.fetchone()
+        
+        if last_row and last_row[0] == str(last_answer):
+            return False  # Если ответ совпадает с последним, не добавляем
+            
         # Проверяем, был ли хоть раз правильный результат
         cursor.execute('SELECT 1 FROM test WHERE task_number = ? AND task_type = ? AND result = 1',
                        (task_number, task_type))
         if cursor.fetchone():
-            return  # Если был хоть раз правильный результат, то не добавляем
+            return False  # Если был хоть раз правильный результат, то не добавляем
         
         # В остальных случаях добавляем новую запись
-        cursor.execute('INSERT INTO test (date_time, task_number, task_type, result) VALUES (?, ?, ?, ?)',
-                       (date_time, task_number, task_type, result))
+        cursor.execute('INSERT INTO test (date_time, task_number, task_type, result, last_answer) VALUES (?, ?, ?, ?, ?)',
+                       (date_time, task_number, task_type, result, str(last_answer)))
+        return True
 
 
-def update_result(date_time, task_number, task_type, result):
+def update_result(date_time, task_number, task_type, last_answer, result):
     with sqlite3.connect(db_path()) as connection:
         cursor = connection.cursor()
-        cursor.execute('UPDATE test SET date_time = ?, result = ? WHERE task_type = ? AND task_number = ?',
-                       (date_time, result, task_type, task_number))
+        try:
+            cursor.execute('ALTER TABLE test ADD COLUMN last_answer TEXT')
+        except sqlite3.OperationalError:
+            pass
+        cursor.execute('UPDATE test SET date_time = ?, last_answer = ?, result = ? WHERE task_type = ? AND task_number = ?',
+                       (date_time, str(last_answer), result, task_type, task_number))
 
 
 def get_result(task_number, task_type):
@@ -234,7 +258,8 @@ def show_detailed_progress_table():
     all_dates = set()
     all_types = set()
 
-    for dt, task_number, task_type, result in results:
+    for row in results:
+        dt, task_number, task_type, result = row[0], row[1], row[2], row[3]
         # Нормализация результата к 0/1
         try:
             r = int(result)
@@ -399,7 +424,8 @@ def show_common_progress():
     # type -> date -> task_number -> list[result]
     type_date_task_values = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
-    for dt, task_number, task_type, result in results:
+    for row in results:
+        dt, task_number, task_type, result = row[0], row[1], row[2], row[3]
         # Нормализация результата к 0/1, некорректные значения/строки пропускаем
         try:
             r = int(result)
@@ -445,29 +471,30 @@ def show_common_progress():
             percentages.append(0.0)
             continue
 
-        per_task_means = []
+        per_task_scores = []
         for vals in task_to_values.values():
-            if len(vals) > 0:
-                per_task_means.append(sum(vals) / len(vals))
+            if not vals:
+                continue
+            if sum(vals) > 0:
+                per_task_scores.append(sum(vals) / len(vals))
+            else:
+                per_task_scores.append(0.0)
 
-        percent = (sum(per_task_means) / len(per_task_means)) * 100 if per_task_means else 0.0
-        
-        # Рассчитываем коэффициент на основе ВСЕ когда-либо решённых заданий данного типа
-        # Считаем общее количество верно решённых заданий для данного типа из всех дат
+        percent = (sum(per_task_scores) / len(per_task_scores)) * 100 if per_task_scores else 0.0
+
         total_correct_count = 0
         for date_data in type_date_task_values[t].values():
             for vals in date_data.values():
-                # Каждое задание (task_number) считается один раз, берём его максимальное значение
-                if len(vals) > 0 and max(vals) == 1.0:
+                if len(vals) > 0 and max(vals) == 1:
                     total_correct_count += 1
-        
-        # Применяем коэффициент на основе общего количества верно решённых заданий
-        if total_correct_count < 10:
-            coefficient = (total_correct_count * 10) / 100.0  # 10% за каждое верное задание
-        else:
-            coefficient = 1.0  # 100% для 10 и более
-        
-        percent = percent * coefficient
+
+        if total_correct_count > 0:
+            if total_correct_count < 10:
+                coefficient = (total_correct_count * 10) / 100.0
+            else:
+                coefficient = 1.0
+            percent = percent * coefficient
+
         percentages.append(percent)
 
     # Построение гистограммы
@@ -506,71 +533,80 @@ def result_register(task_type, number, result, right_result):
     """
     res = 1 if hashlib.md5(str(result).encode()).hexdigest() == right_result else 0
     # Храним дату в читабельном ISO-формате
-    add_result(datetime.now().isoformat(), number, task_type, res)
-
-    def mark_task_files(task_type, number, is_correct):
-        """Ищет файлы задания (.md и .png и пр.) и переименовывает, добавляя префикс '+' или '-'"""
-        try:
-            t = int(task_type)
-            n = int(number)
-        except Exception:
-            return []
-
-        # Строим путь относительно корня репозитория, отталкиваясь от текущего файла tests/conftest.py
-        task_dir = os.path.join(repo_root(), f"Тема {t}", "Задания")
-
-        if not os.path.isdir(task_dir):
-            task_dir = os.path.join(repo_root(), "ЕГЭ", f"Тема {t}", "Задания")
-        if not os.path.isdir(task_dir):
-            return []
-
-        # Список поддерживаемых расширений файлов
-        extensions = ['.md', '.png', '.py', '.jpg', '.ods', '.xlsx', '.odt', '.docx', '.doc', '.xls', '.csv', '.txt', '.pdf']
-        # Список найденных файлов
-        files_to_rename = []
-        renamed_paths = []
-        sign = '+' if is_correct else '-'
-        commit_msg = f"Обновлен статус задания № {number} Тема: {task_type} > {('Верно' if res else 'Неверно')}"
-
-        for ext in extensions:
-            base_name = f"Задание {n}{ext}"
-            target_name = sign + base_name
-            
-            # Проверяем наличие любой версии файла (оригинал, +, -)
-            file_exists = False
-            for prefix in ['', '+', '-']:
-                if os.path.exists(os.path.join(task_dir, prefix + base_name)):
-                    file_exists = True
-                    break
-            
-            if not file_exists:
-                continue
-
-            files_to_rename.append({'base': base_name, 'target': target_name})
-            renamed_paths.append(os.path.join(task_dir, target_name))
-
-        if files_to_rename:
+    added = add_result(datetime.now().isoformat(), number, task_type, result, res)
+    
+    if added:
+        def mark_task_files(task_type, number, is_correct):
+            """Ищет файлы задания (.md и .png и пр.) и переименовывает, добавляя префикс '+' или '-'"""
             try:
-                # Переименование группы файлов в фоновом режиме
-                rename_when_closed(task_dir, files_to_rename, commit_msg=commit_msg)
-            except Exception as e:
-                print(f"Ошибка при постановке задачи на переименование: {str(e)}")
+                t = int(task_type)
+                n = int(number)
+            except Exception:
+                return []
 
-        return renamed_paths
+            # Строим путь относительно корня репозитория, отталкиваясь от текущего файла tests/conftest.py
+            task_dir = os.path.join(repo_root(), f"Тема {t}", "Задания")
 
-    mark_task_files(task_type, number, res == 1)
-    fig = show_common_progress()
-    fig_path = f'{repo_root()}/tests/common_progress.png'
-    fig.savefig(fig_path)
+            if not os.path.isdir(task_dir):
+                task_dir = os.path.join(repo_root(), "ЕГЭ", f"Тема {t}", "Задания")
+            if not os.path.isdir(task_dir):
+                return []
 
-    # Создаем и сохраняем детальную таблицу прогресса
-    detail_fig = show_detailed_progress_table()
-    detail_fig_path = f'{repo_root()}/tests/detailed_progress.png'
-    detail_fig.savefig(detail_fig_path)
+            # Список поддерживаемых расширений файлов
+            extensions = ['.md', '.png', '.py', '.jpg', '.ods', '.xlsx', '.odt', '.docx', '.doc', '.xls', '.csv', '.txt', '.pdf']
+            # Список найденных файлов
+            files_to_rename = []
+            renamed_paths = []
+            sign = '+' if is_correct else '-'
+            commit_msg = f"Обновлен статус задания № {number} Тема: {task_type} > {('Верно' if res else 'Неверно')}"
 
-    # Добавляем график прогресса в Git и создаем коммит (для графиков отдельный коммит, если они изменились)
-    git_add_file(fig_path)
-    git_add_file(detail_fig_path)
-    git_commit(f"Обновлены графики прогресса")
+            for ext in extensions:
+                base_name = f"Задание {n}{ext}"
+                target_name = sign + base_name
+
+                # Проверяем наличие любой версии файла (оригинал, +, -)
+                file_exists = False
+                for prefix in ['', '+', '-']:
+                    if os.path.exists(os.path.join(task_dir, prefix + base_name)):
+                        file_exists = True
+                        break
+
+                if not file_exists:
+                    continue
+
+                files_to_rename.append({'base': base_name, 'target': target_name})
+                renamed_paths.append(os.path.join(task_dir, target_name))
+
+            if files_to_rename:
+                try:
+                    # Переименование группы файлов в фоновом режиме
+                    rename_when_closed(task_dir, files_to_rename, commit_msg=commit_msg)
+                except Exception as e:
+                    print(f"Ошибка при постановке задачи на переименование: {str(e)}")
+
+            return renamed_paths
+
+        mark_task_files(task_type, number, res == 1)
+        fig = show_common_progress()
+        fig_path = f'{repo_root()}/tests/common_progress.png'
+        fig.savefig(fig_path)
+
+        # Создаем и сохраняем детальную таблицу прогресса
+        detail_fig = show_detailed_progress_table()
+        detail_fig_path = f'{repo_root()}/tests/detailed_progress.png'
+        detail_fig.savefig(detail_fig_path)
+
+        # Добавляем график прогресса в Git и создаем коммит (для графиков отдельный коммит, если они изменились)
+        git_add_file(fig_path)
+        git_add_file(detail_fig_path)
+        git_commit(f"Обновлены графики прогресса")
     
     return "Верно" if res else "Неверно"
+fig = show_common_progress()
+fig_path = f'{repo_root()}/tests/common_progress.png'
+fig.savefig(fig_path)
+
+# Создаем и сохраняем детальную таблицу прогресса
+detail_fig = show_detailed_progress_table()
+detail_fig_path = f'{repo_root()}/tests/detailed_progress.png'
+detail_fig.savefig(detail_fig_path)
