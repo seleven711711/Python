@@ -6,7 +6,7 @@
 
 
 
-answer = 42
+answer = 28
 
 #
 
