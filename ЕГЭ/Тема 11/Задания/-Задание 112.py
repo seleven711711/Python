@@ -6,7 +6,7 @@
 
 
 
-answer =65536
+answer =256
 
 #
 
