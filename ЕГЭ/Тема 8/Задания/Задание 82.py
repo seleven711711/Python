@@ -1,4 +1,10 @@
 # Решение
+from itertools import*
+for line in product('арсток',repeat=5):
+    line=''.join(str)
+
+
+
 
 
 
