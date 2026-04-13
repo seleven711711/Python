@@ -1,7 +1,8 @@
 # Решение
 from turtle import*
 tracer(0)
-k=5
+screensize(2000,2000)
+k=10
 rt(180)
 for i in range(9):
     fd(59*k)
@@ -20,8 +21,8 @@ for i in range(9):
     fd(99*k)
     rt(90)
 up()
-for x in range(-70,70):
-    for y in range(-70,70):
+for x in range(-100,100):
+    for y in range(-100,100):
         goto(x*k,y*k)
         dot(3)
 exitonclick()
