@@ -1,8 +1,8 @@
 # Решение
 from turtle import*
 tracer(0)
-screensize(2000,2000)
 k=10
+screensize(3000, 3000)
 rt(180)
 for i in range(9):
     fd(59*k)
