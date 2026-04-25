@@ -11,7 +11,7 @@ for i in range(9):
     lt(90)
 up()
 fd(18*k)
-rt(90)
+lt(90)
 fd(38*k)
 rt(90)
 down()
