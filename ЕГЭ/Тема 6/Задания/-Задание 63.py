@@ -1,8 +1,8 @@
 # Решение
 from turtle import*
-k=20
+k=7
 tracer(0)
-screensize(2000,2000)
+screensize(3000,3000)
 for n in range(7):
     fd(17*k)
     rt(90)
